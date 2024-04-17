@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.ProBuilder;
 using UnityEngine;
@@ -51,18 +52,11 @@ public class DeleteZeroAreaFaces : MonoBehaviour
     public int DeleteProBuilderZeroAreaFaces(ProBuilderMesh mesh, bool isDelete = true)
     {
         //weld all verts
-        var verts = mesh.GetVertices();
-        int[] indices = new int[verts.Length];
-        Debug.Log("index count: " + indices.Length);
-        for (int i = 0; i < indices.Length; i++)
-        {
-            indices[i] = i;
-        }
-
-        mesh.WeldVertices(indices, 0.025f);
-
+        int[] indices = mesh.faces.SelectMany(x => x.indexes).ToArray();
+        mesh.WeldVertices(indices, 0.1f);
+        
         //setup DeleteProBuilderZeroAreaFaces
-        verts = mesh.GetVertices();
+        var verts = mesh.GetVertices();
         var faces = mesh.faces;
 
         List<Face> zeroAreafaces = new(50);
@@ -101,11 +95,16 @@ public class DeleteZeroAreaFaces : MonoBehaviour
             Debug.Log("DONE! Selected: " + zeroAreafaces.Count);
             mesh.SetSelectedFaces(zeroAreafaces);
         }
+        
+        //weld all verts again
+        indices = mesh.faces.SelectMany(x => x.indexes).ToArray();
+        mesh.WeldVertices(indices, 0.1f);
 
         //mesh update
-        mesh.Optimize();
         EditorUtility.SetDirty(mesh.gameObject);
         mesh.Refresh();
+        mesh.Optimize();
+        ProBuilderEditor.Refresh();
 
         return zeroAreafaces.Count;
     }
@@ -134,7 +133,7 @@ public class DeleteZeroAreaFaces : MonoBehaviour
 }
 
 [CustomEditor(typeof(DeleteZeroAreaFaces))]
-public class ProBuilderDelTrashFacesEditor : Editor
+public class DeleteZeroAreaFacesEditor : Editor
 {
     public override void OnInspectorGUI()
     {
@@ -145,18 +144,18 @@ public class ProBuilderDelTrashFacesEditor : Editor
         
         EditorGUILayout.HelpBox("Steps:\n1. ProBuilderize the exported CSG Model's children.\n2. Click \"2.\" button\n3. If collider has outstanding issues, try \"3.\" button", MessageType.Info);
         
-        foreach (Transform child in myScript.gameObject.transform)
-        {
-            foreach (Transform childsChild in child.transform)
-            {
-                if (childsChild.TryGetComponent<MeshRenderer>(out _) &&
-                    !childsChild.TryGetComponent<ProBuilderMesh>(out _))
-                {
-                    EditorGUILayout.HelpBox("NOT PROBUILDERIZED!", MessageType.Error);
-                    Debug.LogError(child.gameObject.name + ": Not Probuilderized");
-                }
-            }
-        }
+        // foreach (Transform child in myScript.gameObject.transform)
+        // {
+        //     foreach (Transform childsChild in child.transform)
+        //     {
+        //         if (childsChild.TryGetComponent<MeshRenderer>(out _) &&
+        //             !childsChild.TryGetComponent<ProBuilderMesh>(out _))
+        //         {
+        //             EditorGUILayout.HelpBox("NOT PROBUILDERIZED!", MessageType.Error);
+        //             Debug.LogError(child.gameObject.name + ": Not Probuilderized");
+        //         }
+        //     }
+        // }
         
         if (GUILayout.Button("2. Do for children (wield & del 0 area face)"))
         {
