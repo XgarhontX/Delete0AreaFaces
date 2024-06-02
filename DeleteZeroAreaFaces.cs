@@ -8,7 +8,6 @@ using EditorUtility = UnityEditor.EditorUtility;
 using UnityEngine.ProBuilder;
 using UnityEngine.ProBuilder.MeshOperations;
 
-[ExecuteInEditMode]
 [DisallowMultipleComponent]
 public class DeleteZeroAreaFaces : MonoBehaviour
 {
